@@ -47,13 +47,13 @@ def back_project(depth_map, K, Rt):
 if __name__ == "__main__":
     # ================= 配置区域 =================
     # 请修改为你实际的路径
-    root_dir = "/root/dust3r/my_test_tools/facescape_test"
+    # root_dir = "/root/autodl-tmp/images_undistort/001-020/1"
     target_idx = 0  # 你想验证的图片索引 (例如第0张)
     # ===========================================
 
-    ply_path = os.path.join(root_dir, "2_smile.ply")
-    params_path = os.path.join(root_dir, "params.json")
-    npy_path = os.path.join(root_dir, "2_smile_depth", f"{target_idx}.npy")
+    ply_path = "/root/autodl-tmp/shapes/001-020/1/2_smile.ply"
+    params_path = "/root/autodl-tmp/images_undistort/001-020/1/2_smile/params.json"
+    npy_path = "/root/autodl-tmp/depth/001-020/1/2_smile/0.npy"
 
     if not os.path.exists(npy_path):
         print(f"错误: 找不到深度图文件 {npy_path}，请先运行渲染脚本。")
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     points = back_project(depth_map, K, Rt)
 
     # 保存为 PLY 用于对比
-    output_ply = "reconstructed_check.ply"
+    output_ply = "reconstructed_check_2_smile.ply"
     pcd = trimesh.points.PointCloud(points)
     pcd.export(output_ply)
 

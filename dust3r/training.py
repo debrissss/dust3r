@@ -37,7 +37,7 @@ from croco.utils.misc import NativeScalerWithGradNormCount as NativeScaler  # no
 
 
 def get_args_parser():
-    parser = argparse.ArgumentParser('DUST3R training', add_help=False)
+    parser = argparse.ArgumentParser('DUST3R training', add_help=False, fromfile_prefix_chars='@')
     # model and criterion
     parser.add_argument('--model', default="AsymmetricCroCo3DStereo(patch_embed_cls='ManyAR_PatchEmbed')",
                         type=str, help="string containing the model to build")

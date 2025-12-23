@@ -4,6 +4,7 @@ from .utils.transforms import *
 from .base.batched_sampler import BatchedRandomSampler  # noqa
 from .arkitscenes import ARKitScenes  # noqa
 from .blendedmvs import BlendedMVS  # noqa
+from .facescape import FaceScape
 from .co3d import Co3d  # noqa
 from .habitat import Habitat  # noqa
 from .megadepth import MegaDepth  # noqa
