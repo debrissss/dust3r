@@ -103,30 +103,8 @@ class FaceScape (BaseStereoViewDataset):
 
             # 6. 裁剪与缩放 (保持原版逻辑)
             # 这一步非常重要，它会处理图片缩放、内参调整和深度图缩放
-            # image, depthmap, intrinsics = self._crop_resize_if_necessary(
-            #     image, depthmap, intrinsics, resolution, rng, info=(seq_path, impath))
-
-            try:
-                image, depthmap, intrinsics = self._crop_resize_if_necessary(
-                    image, depthmap, intrinsics, resolution, rng, info=(seq_path, impath)
-                )
-            except ValueError as e:
-                # === 捕获异常并打印详细信息 ===
-                print("\n" + "="*50)
-                print(f"!!! CRITICAL ERROR IN DATASET PROCESSING !!!")
-                print(f"Error Type: {type(e).__name__}")
-                print(f"Error Message: {e}")
-                print("-" * 30)
-                print(f"Problematic Scene: {scene_name}")
-                print(f"Problematic View ID: {view_index}")
-                print(f"Image Path: {full_img_path}")
-                print("-" * 30)
-                if hasattr(image, 'shape'):
-                    print(f"Image Shape: {image.shape}")
-                print(f"Target Resolution: {resolution}")
-                print(f"Intrinsics:\n{intrinsics}")
-                print("="*50 + "\n")
-                raise e
+            image, depthmap, intrinsics = self._crop_resize_if_necessary(
+                image, depthmap, intrinsics, resolution, rng, info=(seq_path, impath))
 
             views.append(dict(
                 img=image,
