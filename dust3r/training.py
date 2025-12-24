@@ -94,7 +94,7 @@ def train(args):
     global_rank = misc.get_rank()
     world_size = misc.get_world_size()
 
-    print("output_dir: " + args.output_dir)
+    # print("output_dir: " + args.output_dir)
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
@@ -102,8 +102,8 @@ def train(args):
     last_ckpt_fname = os.path.join(args.output_dir, f'checkpoint-last.pth')
     args.resume = last_ckpt_fname if os.path.isfile(last_ckpt_fname) else None
 
-    print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
-    print("{}".format(args).replace(', ', ',\n'))
+    # print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
+    # print("{}".format(args).replace(', ', ',\n'))
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device)
@@ -116,29 +116,29 @@ def train(args):
     cudnn.benchmark = not args.disable_cudnn_benchmark
 
     # training dataset and loader
-    print('Building train dataset {:s}'.format(args.train_dataset))
+    # print('Building train dataset {:s}'.format(args.train_dataset))
     #  dataset and loader
     data_loader_train = build_dataset(args.train_dataset, args.batch_size, args.num_workers, test=False)
-    print('Building test dataset {:s}'.format(args.train_dataset))
+    # print('Building test dataset {:s}'.format(args.train_dataset))
     data_loader_test = {dataset.split('(')[0]: build_dataset(dataset, args.batch_size, args.num_workers, test=True)
                         for dataset in args.test_dataset.split('+')}
 
     # model
-    print('Loading model: {:s}'.format(args.model))
+    # print('Loading model: {:s}'.format(args.model))
     model = eval(args.model)
-    print(f'>> Creating train criterion = {args.train_criterion}')
+    # print(f'>> Creating train criterion = {args.train_criterion}')
     train_criterion = eval(args.train_criterion).to(device)
-    print(f'>> Creating test criterion = {args.test_criterion or args.train_criterion}')
+    # print(f'>> Creating test criterion = {args.test_criterion or args.train_criterion}')
     test_criterion = eval(args.test_criterion or args.criterion).to(device)
 
     model.to(device)
     model_without_ddp = model
-    print("Model = %s" % str(model_without_ddp))
+    # print("Model = %s" % str(model_without_ddp))
 
     if args.pretrained and not args.resume:
-        print('Loading pretrained: ', args.pretrained)
+        # print('Loading pretrained: ', args.pretrained)
         ckpt = torch.load(args.pretrained, map_location=device)
-        print(model.load_state_dict(ckpt['model'], strict=False))
+        # print(model.load_state_dict(ckpt['model'], strict=False))
         del ckpt  # in case it occupies memory
 
     eff_batch_size = args.batch_size * args.accum_iter * misc.get_world_size()
@@ -157,7 +157,7 @@ def train(args):
     # following timm: set wd as 0 for bias and norm layers
     param_groups = misc.get_parameter_groups(model_without_ddp, args.weight_decay)
     optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
-    print(optimizer)
+    # print(optimizer)
     loss_scaler = NativeScaler()
 
     def write_log_stats(epoch, train_stats, test_stats):
@@ -231,7 +231,7 @@ def train(args):
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-    print('Training time {}'.format(total_time_str))
+    # print('Training time {}'.format(total_time_str))
 
     save_final_model(args, args.epochs, model_without_ddp, best_so_far=best_so_far)
 
@@ -246,13 +246,13 @@ def save_final_model(args, epoch, model_without_ddp, best_so_far=None):
     }
     if best_so_far is not None:
         to_save['best_so_far'] = best_so_far
-    print(f'>> Saving model to {checkpoint_path} ...')
+    # print(f'>> Saving model to {checkpoint_path} ...')
     misc.save_on_master(to_save, checkpoint_path)
 
 
 def build_dataset(dataset, batch_size, num_workers, test=False):
     split = ['Train', 'Test'][test]
-    print(f'Building {split} Data loader for dataset: ', dataset)
+    # print(f'Building {split} Data loader for dataset: ', dataset)
     loader = get_data_loader(dataset,
                              batch_size=batch_size,
                              num_workers=num_workers,
@@ -260,7 +260,7 @@ def build_dataset(dataset, batch_size, num_workers, test=False):
                              shuffle=not (test),
                              drop_last=not (test))
 
-    print(f"{split} dataset length: ", len(loader))
+    # print(f"{split} dataset length: ", len(loader))
     return loader
 
 
@@ -334,7 +334,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
-    print("Averaged stats:", metric_logger)
+    # print("Averaged stats:", metric_logger)
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
 
 
@@ -365,7 +365,7 @@ def test_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
-    print("Averaged stats:", metric_logger)
+    # print("Averaged stats:", metric_logger)
 
     aggs = [('avg', 'global_avg'), ('med', 'median')]
     results = {f'{k}_{tag}': getattr(meter, attr) for k, meter in metric_logger.meters.items() for tag, attr in aggs}
