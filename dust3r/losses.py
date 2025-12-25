@@ -182,6 +182,16 @@ class Regr3D (Criterion, MultiLoss):
 
         return gt_pts1, gt_pts2, pr_pts1, pr_pts2, valid1, valid2, {}
 
+    # def compute_loss(self, gt1, gt2, pred1, pred2, **kw):
+    #     gt_pts1, gt_pts2, pred_pts1, pred_pts2, mask1, mask2, monitoring = \
+    #         self.get_all_pts3d(gt1, gt2, pred1, pred2, **kw)
+    #     # loss on img1 side
+    #     l1 = self.criterion(pred_pts1[mask1], gt_pts1[mask1])
+    #     # loss on gt2 side
+    #     l2 = self.criterion(pred_pts2[mask2], gt_pts2[mask2])
+    #     self_name = type(self).__name__
+    #     details = {self_name + '_pts3d_1': float(l1.mean()), self_name + '_pts3d_2': float(l2.mean())}
+    #     return Sum((l1, mask1), (l2, mask2)), (details | monitoring)
     def compute_loss(self, gt1, gt2, pred1, pred2, **kw):
         gt_pts1, gt_pts2, pred_pts1, pred_pts2, mask1, mask2, monitoring = \
             self.get_all_pts3d(gt1, gt2, pred1, pred2, **kw)
@@ -190,7 +200,12 @@ class Regr3D (Criterion, MultiLoss):
         # loss on gt2 side
         l2 = self.criterion(pred_pts2[mask2], gt_pts2[mask2])
         self_name = type(self).__name__
-        details = {self_name + '_pts3d_1': float(l1.mean()), self_name + '_pts3d_2': float(l2.mean())}
+
+        # [Fix] 使用 .detach().item() 切断梯度并获取纯数值
+        details = {
+            self_name + '_pts3d_1': l1.mean().detach().item(),
+            self_name + '_pts3d_2': l2.mean().detach().item()
+        }
         return Sum((l1, mask1), (l2, mask2)), (details | monitoring)
 
 
@@ -217,6 +232,25 @@ class ConfLoss (MultiLoss):
     def get_conf_log(self, x):
         return x, torch.log(x)
 
+    # def compute_loss(self, gt1, gt2, pred1, pred2, **kw):
+    #     # compute per-pixel loss
+    #     ((loss1, msk1), (loss2, msk2)), details = self.pixel_loss(gt1, gt2, pred1, pred2, **kw)
+    #     if loss1.numel() == 0:
+    #         print('NO VALID POINTS in img1', force=True)
+    #     if loss2.numel() == 0:
+    #         print('NO VALID POINTS in img2', force=True)
+    #
+    #     # weight by confidence
+    #     conf1, log_conf1 = self.get_conf_log(pred1['conf'][msk1])
+    #     conf2, log_conf2 = self.get_conf_log(pred2['conf'][msk2])
+    #     conf_loss1 = loss1 * conf1 - self.alpha * log_conf1
+    #     conf_loss2 = loss2 * conf2 - self.alpha * log_conf2
+    #
+    #     # average + nan protection (in case of no valid pixels at all)
+    #     conf_loss1 = conf_loss1.mean() if conf_loss1.numel() > 0 else 0
+    #     conf_loss2 = conf_loss2.mean() if conf_loss2.numel() > 0 else 0
+    #
+    #     return conf_loss1 + conf_loss2, dict(conf_loss_1=float(conf_loss1), conf_loss2=float(conf_loss2), **details)
     def compute_loss(self, gt1, gt2, pred1, pred2, **kw):
         # compute per-pixel loss
         ((loss1, msk1), (loss2, msk2)), details = self.pixel_loss(gt1, gt2, pred1, pred2, **kw)
@@ -232,10 +266,16 @@ class ConfLoss (MultiLoss):
         conf_loss2 = loss2 * conf2 - self.alpha * log_conf2
 
         # average + nan protection (in case of no valid pixels at all)
-        conf_loss1 = conf_loss1.mean() if conf_loss1.numel() > 0 else 0
-        conf_loss2 = conf_loss2.mean() if conf_loss2.numel() > 0 else 0
+        # 注意：这里为了防止报错，如果为0时保持为 tensor 0
+        conf_loss1 = conf_loss1.mean() if conf_loss1.numel() > 0 else torch.tensor(0.0, device=loss1.device)
+        conf_loss2 = conf_loss2.mean() if conf_loss2.numel() > 0 else torch.tensor(0.0, device=loss2.device)
 
-        return conf_loss1 + conf_loss2, dict(conf_loss_1=float(conf_loss1), conf_loss2=float(conf_loss2), **details)
+        # [Fix] 使用 .detach().item() 获取日志用的纯数值
+        # 注意处理 conf_loss 为 0 的情况 (item() 依然可用)
+        log_loss1 = conf_loss1.detach().item() if isinstance(conf_loss1, torch.Tensor) else float(conf_loss1)
+        log_loss2 = conf_loss2.detach().item() if isinstance(conf_loss2, torch.Tensor) else float(conf_loss2)
+
+        return conf_loss1 + conf_loss2, dict(conf_loss_1=log_loss1, conf_loss2=log_loss2, **details)
 
 
 class Regr3D_ShiftInv (Regr3D):
